@@ -420,25 +420,27 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
   z-index: 1;
 }
 
+/* increase active key stacking so popup is always on top of neighbors */
 .flick-key.active {
   background: rgba(0,240,255,0.18);
   border-color: var(--primary);
   box-shadow: 0 0 20px var(--primary-glow);
   transform: scale(0.97);
-  z-index: 100;
+  z-index: 500;
 }
 
 .key-label { pointer-events:none; }
 
+/* Show popup above the key to avoid overlapping adjacent keys */
 .flick-popup {
   display: none;
   position: absolute;
   left: 50%;
-  top: 50%;
+  top: -136px; /* lift popup above the key */
   width: 252px;
   height: 252px;
-  transform: translate(-50%, -50%);
-  z-index: 200;
+  transform: translateX(-50%);
+  z-index: 999;
   pointer-events: none;
 }
 
@@ -448,8 +450,8 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
 }
 
 @keyframes flickPopupIn {
-  from { opacity: 0; transform: translate(-50%, -50%) scale(.82); }
-  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  from { opacity: 0; transform: translateX(-50%) scale(.82); }
+  to   { opacity: 1; transform: translateX(-50%) scale(1); }
 }
 
 /* 出てくる5ブロックは、押したキーと同じ78px四方 */
@@ -562,7 +564,7 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
 @media (max-width: 420px) {
   .flick-grid { gap: 8px; }
   .flick-key { height: 72px; font-size: 1.5rem; }
-  .flick-popup { width: 228px; height: 228px; }
+  .flick-popup { width: 228px; height: 228px; top: -114px; }
   .flick-option { width: 72px; height: 72px; }
   .opt-center { left: 78px; top: 78px; }
   .opt-up { left: 78px; }
@@ -575,7 +577,7 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
 
 /* リザルト画面 */
 .result-stat { font-family: var(--font-en); font-size: 1.3rem; color: var(--primary); text-align: center; margin: 15px 0; letter-spacing: 1px; }
-.new-record { color: var(--success); font-family: var(--font-en); font-weight: 900; text-shadow: 0 0 15px var(--success); font-size: 1.2rem; margin-bottom: 10px; animation: popIn 0.5s infinite alternate; }
+.new-record { color: var(--success); font-family: var(--font-en); font-weight: 900; text-shadow: 0 0 15px var(--success); font-size: 1.2rem; margin-bottom: 10px; animation: popIn 0.5s infinite al[...] 
 .ranking { width: 100%; margin: 20px 0; background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border-color-dim); padding: 10px; }
 .rank-row { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px; }
 .rank-row:last-child { border-bottom: none; }
@@ -999,313 +1001,4 @@ function setQuestion(){
 
 function updateScoreUI(){
   document.querySelector('#my-score-box span').textContent = myScore;
-}
-
-/*
-  回答ルール
-  ─────────────────────────
-  かなキーから
-    左  → 四段活用
-    右  → 変格活用
-    上  → 上
-    下  → 下
-
-  上を選んだ後
-    左 → 上一段活用
-    右 → 上二段活用
-
-  下を選んだ後
-    左 → 下一段活用
-    右 → 下二段活用
-
-  「指を離した瞬間」にだけ判定する。
-*/
-function submitFlick(gyo, dx, dy){
-  if(!isPlaying || isWaitingNext) return;
-  const ax = Math.abs(dx), ay = Math.abs(dy);
-  const threshold = 30;
-
-  if(ax > ay && ax >= threshold){
-    checkFlickAnswer(dx < 0 ? '四段活用' : '変格活用', null, gyo);
-  }else if(ay >= threshold){
-    wrong();
-  }
-}
-
-let flickStage = null;
-
-function checkFlickAnswer(answer, verticalType, gyo){
-  if(!isPlaying || isWaitingNext) return;
-
-  // 行が違えば、活用が合っていても絶対に正解にしない。
-  if(gyo !== currentQ.gyo){
-    wrong();
-    return;
-  }
-
-  if(verticalType === '上' || verticalType === '下'){
-    if(currentQ.type === verticalType && answer === currentQ.sub){
-      solvedLocally();
-    }else{
-      wrong();
-    }
-    return;
-  }
-
-  if(answer === currentQ.type){
-    solvedLocally();
-  }else{
-    wrong();
-  }
-}
-
-// ---------- フリック入力イベント ----------
-let flickPointer = null;
-
-function setPopupLabels(key, stage=null){
-  const p = key.querySelector('.flick-popup');
-  if(!p) return;
-
-  p.classList.remove('stage-up','stage-down','secondary-mode');
-
-  p.querySelector('.opt-center').textContent = key.dataset.gyo;
-  p.querySelector('.opt-up').textContent = '上';
-  p.querySelector('.opt-down').textContent = '下';
-
-  if(stage === '上'){
-    p.querySelector('.opt-left').textContent = '上一段活用';
-    p.querySelector('.opt-right').textContent = '上二段活用';
-  }else if(stage === '下'){
-    p.querySelector('.opt-left').textContent = '下一段活用';
-    p.querySelector('.opt-right').textContent = '下二段活用';
-  }else{
-    p.querySelector('.opt-left').textContent = '四段活用';
-    p.querySelector('.opt-right').textContent = '変格活用';
-  }
-}
-
-function updateFlickPopupStage(key, stage){
-  const p = key.querySelector('.flick-popup');
-  if(!p) return;
-
-  setPopupLabels(key, stage);
-  p.classList.add('secondary-mode', stage === '上' ? 'stage-up' : 'stage-down');
-
-  // 上/下を選択した時点で、中央に戻れるよう中央キーを常に残す。
-  p.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
-  p.querySelector('.opt-center')?.classList.add('chosen');
-}
-
-function initFlickInput(){
-  document.querySelectorAll('.flick-key').forEach(key => {
-    key.addEventListener('pointerdown', e => {
-      if(!isPlaying || isWaitingNext) return;
-
-      const popup = key.querySelector('.flick-popup');
-      setPopupLabels(key, null);
-      popup.classList.remove('secondary-mode','stage-up','stage-down');
-      popup.setAttribute('aria-hidden','false');
-
-      flickPointer = {
-        id:e.pointerId,
-        key,
-        gyo:key.dataset.gyo,
-        x:e.clientX,
-        y:e.clientY,
-        stage:null,
-        secondaryDirection:null
-      };
-
-      key.classList.add('active');
-      key.setPointerCapture?.(e.pointerId);
-      e.preventDefault();
-    });
-
-    key.addEventListener('pointermove', e => {
-      if(!flickPointer || flickPointer.id !== e.pointerId) return;
-
-      const f = flickPointer;
-      const dx = e.clientX - f.x;
-      const dy = e.clientY - f.y;
-      const ax = Math.abs(dx);
-      const ay = Math.abs(dy);
-      const threshold = 22;
-      const centerRadius = 26;
-
-      f.key.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
-
-      // 中央へ戻ったら、必ず最初の「上下左右」表示へ戻す。
-      if(ax < centerRadius && ay < centerRadius){
-        if(f.stage !== null){
-          f.stage = null;
-          f.secondaryDirection = null;
-          const popup = f.key.querySelector('.flick-popup');
-          popup.classList.remove('secondary-mode','stage-up','stage-down');
-          setPopupLabels(f.key, null);
-          document.getElementById('flick-hint').textContent =
-            '上下左右から選択できます';
-        }
-        f.key.querySelector('.opt-center')?.classList.add('chosen');
-        e.preventDefault();
-        return;
-      }
-
-      if(!f.stage){
-        // 第1段階：上下左右。
-        // 上下方向を少し優先し、斜めに入ったときも自然に上下へ吸着する。
-        if(ay >= threshold && ay >= ax * 0.72){
-          f.stage = dy < 0 ? '上' : '下';
-          f.secondaryDirection = null;
-          updateFlickPopupStage(f.key, f.stage);
-          f.key.querySelector(dy < 0 ? '.opt-up' : '.opt-down')?.classList.add('chosen');
-
-          document.getElementById('flick-hint').textContent =
-            f.stage === '上'
-              ? '左上＝上一段活用　右上＝上二段活用'
-              : '左下＝下一段活用　右下＝下二段活用';
-        }else if(ax >= threshold && ax > ay * 0.95){
-          f.key.querySelector(dx < 0 ? '.opt-left' : '.opt-right')?.classList.add('chosen');
-        }else{
-          f.key.querySelector('.opt-center')?.classList.add('chosen');
-        }
-      }else{
-        // 第2段階：上なら左上/右上、下なら左下/右下。
-        // 縦方向を維持しつつ左右へ動かしたときだけ確定候補を切り替える。
-        const verticalOK = f.stage === '上' ? dy < -8 : dy > 8;
-
-        if(verticalOK && dx < -threshold){
-          f.secondaryDirection = 'left';
-          f.key.querySelector('.opt-left')?.classList.add('chosen');
-        }else if(verticalOK && dx > threshold){
-          f.secondaryDirection = 'right';
-          f.key.querySelector('.opt-right')?.classList.add('chosen');
-        }else{
-          f.secondaryDirection = null;
-        }
-      }
-
-      e.preventDefault();
-    });
-
-    key.addEventListener('pointerup', e => {
-      if(!flickPointer || flickPointer.id !== e.pointerId) return;
-
-      const f = flickPointer;
-      const dx = e.clientX - f.x;
-      const dy = e.clientY - f.y;
-      const stage = f.stage;
-      const secondaryDirection = f.secondaryDirection;
-
-      f.key.classList.remove('active');
-      f.key.querySelector('.flick-popup').setAttribute('aria-hidden','true');
-      f.key.querySelector('.flick-popup').classList.remove('secondary-mode','stage-up','stage-down');
-      f.key.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
-
-      // 指を離した瞬間だけ確定。
-      if(stage === '上' || stage === '下'){
-        if(secondaryDirection === 'left'){
-          checkFlickAnswer('一段活用', stage, f.gyo);
-        }else if(secondaryDirection === 'right'){
-          checkFlickAnswer('二段活用', stage, f.gyo);
-        }else if(Math.abs(dx) < 26 && Math.abs(dy) < 26){
-          // 中央で離した場合はキャンセル。
-          document.getElementById('flick-hint').textContent = '中央に戻しました';
-        }else{
-          wrong();
-        }
-      }else{
-        submitFlick(f.gyo, dx, dy);
-      }
-
-      flickPointer = null;
-      e.preventDefault();
-    });
-
-    key.addEventListener('pointercancel', e => {
-      if(flickPointer && flickPointer.id === e.pointerId){
-        flickPointer.key.classList.remove('active');
-        flickPointer.key.querySelector('.flick-popup').setAttribute('aria-hidden','true');
-        flickPointer.key.querySelector('.flick-popup').classList.remove('secondary-mode','stage-up','stage-down');
-        flickPointer = null;
-      }
-    });
-  });
-}
-function wrong(){
-  const card = document.getElementById('word-card');
-  card.style.animation = 'none';
-  card.offsetHeight;
-  card.style.animation = 'shake 0.4s';
-  navigator.vibrate && navigator.vibrate(50); // モバイル向けの振動
-}
-
-function solvedLocally(){
-  if(!isPlaying || isWaitingNext) return;
-  isWaitingNext = true;
-  totalSolveTime += (performance.now() - startTime) / 1000;
-  myScore++;
-  updateScoreUI();
-  showOverlay('POINT!', '');
-  
-  setTimeout(() => {
-    hideOverlay();
-    if(qIndex + 1 < MAX_Q) { qIndex++; setQuestion(); }
-    else endGame();
-  }, 700);
-}
-
-function endGame(){
-  isPlaying = false;
-  isWaitingNext = true;
-  hideOverlay();
-  showScreen('screen-result');
-
-  const title = document.getElementById('result-title');
-  const detail = document.getElementById('result-detail');
-  const newRecord = document.getElementById('new-record');
-  const bestEl = document.getElementById('result-best');
-
-  newRecord.classList.add('hidden');
-  document.getElementById('progress-bar').style.width = '100%';
-
-  title.textContent = 'MISSION CLEAR';
-  title.style.color = "var(--primary)";
-
-  const avg = totalSolveTime / Math.max(1, myScore);
-  let record = false;
-
-  if(bestAvg === null || avg < bestAvg){
-    bestAvg = avg;
-    localStorage.setItem('kobun_best_avg', bestAvg.toFixed(4));
-    record = true;
-  }
-
-  detail.innerHTML =
-    `SCORE: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${myScore}</span> / ${MAX_Q}<br>` +
-    `AVG TIME: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${avg.toFixed(2)}</span> s`;
-
-  bestEl.textContent = `YOUR BEST: ${bestAvg.toFixed(2)}s`;
-  if(record) newRecord.classList.remove('hidden');
-  updateProfileUI();
-}
-
-function confirmLeaveGame(){
-  if(confirm('現在のバトルを放棄して離脱しますか？')){
-    isPlaying = false; hideOverlay(); showScreen('screen-title');
-  }
-}
-
-// ---------- 初期化 ----------
-window.addEventListener('DOMContentLoaded', () => {
-  makeAvatarGrid('setup-avatars');
-  initFlickInput();
-  if(!myName){
-    showScreen('screen-setup');
-  } else {
-      updateProfileUI();
-    showScreen('screen-title');
-  }
-});
-</script>
-</body>
-</html>
+[...]

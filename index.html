@@ -1,24 +1,1311 @@
-@@
- function updateProfileUI(){
-@@
- }
-+
-+// Initialize UI on load
-+function initUI(){
-+  makeAvatarGrid('setup-avatars');
-+  makeAvatarGrid('settings-avatars');
-+  updateProfileUI();
-+  hideOverlay();
-+  if(!myName || myName.trim() === ''){
-+    showScreen('screen-setup');
-+  } else {
-+    showScreen('screen-title');
-+  }
-+}
-+
-+window.addEventListener('DOMContentLoaded', initUI);
-+
-@@
- function setQuestion(){
-@@
- }
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>古文フリッカー</title>
+<link rel="icon" href="https://keni-77.github.io/icon.ico">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=M+PLUS+1p:wght@400;700;900&display=swap');
+
+:root {
+  /* カラーパレット */
+  --bg-base: #050814;
+  --bg-panel: rgba(13, 17, 30, 0.8);
+  --primary: #00f0ff;
+  --primary-glow: rgba(0, 240, 255, 0.4);
+  --secondary: #ff007f;
+  --secondary-glow: rgba(255, 0, 127, 0.4);
+  --accent: #ffe600;
+  --success: #00ff66;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --border-color: rgba(0, 240, 255, 0.2);
+  --border-color-dim: rgba(255, 255, 255, 0.1);
+  
+  /* フォント */
+  --font-en: 'Orbitron', sans-serif;
+  --font-jp: 'M PLUS 1p', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-jp);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  overflow-x: hidden;
+  /* サイバーパンクなグリッド背景 */
+  background-image: 
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  background-position: center center;
+}
+
+button, input { font: inherit; }
+button { cursor: pointer; outline: none; }
+.hidden { display: none !important; }
+
+#app {
+  width: 100%;
+  max-width: 560px;
+  min-height: 100vh;
+  padding: 20px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 画面遷移アニメーション */
+.screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  animation: slideIn 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  50% { transform: translateX(6px); }
+  75% { transform: translateX(-6px); }
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ヘッダー・タイトル */
+h1 {
+  font-family: var(--font-en);
+  font-size: 2.2rem;
+  color: #fff;
+  text-shadow: 0 0 10px var(--primary), 0 0 20px var(--primary);
+  letter-spacing: 3px;
+  text-align: center;
+  margin-bottom: 0;
+  line-height: 1.2;
+}
+
+.subtitle {
+  font-family: var(--font-en);
+  font-size: 0.8rem;
+  color: var(--primary);
+  letter-spacing: 6px;
+  margin: 5px 0 25px;
+  text-align: center;
+  font-weight: 700;
+}
+
+/* 汎用コンポーネント */
+.top-settings {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-panel);
+  color: var(--primary);
+  font-size: 1.2rem;
+  z-index: 20;
+  box-shadow: 0 0 10px rgba(0,0,0,0.5);
+  transition: all 0.2s;
+}
+.top-settings:active { transform: scale(0.9); background: var(--primary); color: #000; }
+
+.card {
+  width: 100%;
+  background: var(--bg-panel);
+  border: 1px solid var(--border-color-dim);
+  border-radius: 16px;
+  padding: 20px;
+  margin: 10px 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* プロフィール周り */
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  border: 1px solid var(--primary);
+  background: linear-gradient(90deg, rgba(0,240,255,0.05), transparent);
+  border-radius: 16px;
+  padding: 15px;
+  box-shadow: inset 0 0 20px rgba(0, 240, 255, 0.05);
+}
+.avatar {
+  width: 60px;
+  height: 60px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.2rem;
+  background: rgba(0,0,0,0.5);
+  border: 2px solid var(--primary);
+  flex: none;
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+.name { font-weight: 900; font-size: 1.2rem; letter-spacing: 1px; }
+.best { font-family: var(--font-en); color: var(--accent); font-size: 0.8rem; margin-top: 4px; letter-spacing: 1px; }
+
+/* ボタンデザイン */
+.btn {
+  width: 100%;
+  padding: 15px;
+  margin: 8px 0;
+  border: 1px solid var(--primary);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(0,240,255,0.1), rgba(0,0,0,0.8));
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 2px;
+  text-shadow: 0 0 5px var(--primary);
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  transition: all 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+.btn::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: all 0.4s ease;
+}
+.btn:active::before { left: 100%; }
+.btn:active { transform: translateY(2px) scale(0.98); box-shadow: 0 0 0 transparent; }
+.btn.green { border-color: var(--success); background: linear-gradient(135deg, rgba(0,255,102,0.1), rgba(0,0,0,0.8)); text-shadow: 0 0 5px var(--success); }
+.btn.gray { border-color: #475569; background: #1e293b; text-shadow: none; color: var(--text-muted); }
+.btn.small { width: auto; font-size: 0.8rem; padding: 8px 16px; margin: 0; border-radius: 8px; letter-spacing: 0; }
+
+.section-title{width:100%;font-family:var(--font-en);color:var(--primary);font-size:.9rem;margin:15px 0 10px;letter-spacing:2px;border-bottom:1px solid var(--border-color);padding-bottom:5px;}
+
+/* モーダル・入力 */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(5px);
+  z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;
+}
+.modal {
+  width: 100%; max-width: 400px; background: #0b0f19;
+  border: 1px solid var(--primary); border-radius: 20px; padding: 25px;
+  box-shadow: 0 0 40px var(--primary-glow); animation: popIn 0.2s ease-out;
+}
+.modal h2 { font-family: var(--font-en); color: var(--primary); font-size: 1.3rem; margin-bottom: 15px; text-align: center; letter-spacing: 2px; }
+input {
+  width: 100%; padding: 15px; border: 1px solid var(--border-color); border-radius: 12px;
+  background: rgba(0,0,0,0.5); color: #fff; font-size: 1rem; font-weight: 700;
+  outline: none; text-align: center; margin: 10px 0; transition: border 0.2s;
+}
+input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-glow); }
+.avatar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 15px 0 25px; }
+.avatar-item {
+  background: rgba(255,255,255,0.05); border: 1px solid transparent; border-radius: 12px;
+  padding: 10px; font-size: 1.8rem; text-align: center; cursor: pointer; transition: all 0.2s;
+}
+.avatar-item:hover { background: rgba(255,255,255,0.1); }
+.avatar-item.selected {
+  border-color: var(--success); background: rgba(0,255,102,0.1); box-shadow: 0 0 15px rgba(0,255,102,0.3); transform: scale(1.05);
+}
+
+/* ゲーム画面 HUD */
+#hud { width: 100%; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; }
+.progress { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+#progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, var(--primary), var(--secondary)); transition: width 0.3s ease-out; box-shadow: 0 0 10px var(--primary); }
+.scoreboard { display: flex; justify-content: space-between; align-items: center; font-family: var(--font-en); font-size: 1rem; }
+.score { background: rgba(0,0,0,0.6); border: 1px solid var(--border-color-dim); padding: 8px 15px; border-radius: 10px; color: var(--text-muted); }
+.score span { color: #fff; font-size: 1.2rem; font-weight: 900; margin-left: 5px; text-shadow: 0 0 5px rgba(255,255,255,0.5); }
+#my-score-box span { color: var(--primary); text-shadow: 0 0 8px var(--primary-glow); }
+
+/* ゲーム画面 問題・パネル */
+.word-card {
+  width: 100%;
+  background: radial-gradient(circle at center, rgba(0,240,255,0.1) 0%, rgba(0,0,0,0.6) 100%);
+  border: 1px solid var(--primary); border-radius: 20px; padding: 40px 10px; text-align: center;
+  box-shadow: 0 0 30px var(--primary-glow); margin-bottom: 25px; position: relative;
+}
+#word-display { font-size: 4rem; font-weight: 900; color: #fff; text-shadow: 0 0 15px var(--primary), 0 0 30px var(--primary); letter-spacing: 5px; line-height: 1; }
+#status-text { font-family: var(--font-en); font-size: 0.9rem; color: var(--accent); margin-top: 15px; letter-spacing: 2px; font-weight: 700; }
+
+.panel {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.tap {
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-bottom: 4px solid rgba(0,240,255,0.3);
+  color: #fff; font-size: 1.4rem; font-weight: 900;
+  border-radius: 14px; padding: 18px 0; flex: 1 1 calc(20% - 12px); min-width: 60px;
+  transition: all 0.1s; text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+}
+.tap.wide { flex: 1 1 calc(50% - 12px); font-size: 1.2rem; }
+.tap:active {
+  transform: translateY(4px); border-bottom-width: 0px; margin-bottom: 4px;
+  background: var(--primary); color: #000; text-shadow: none; box-shadow: 0 0 15px var(--primary);
+}
+
+
+/* フリック入力 */
+.flick-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  touch-action: none;
+}
+
+.flick-hint {
+  min-height: 24px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+.flick-grid {
+  width: min(100%, 390px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.flick-key {
+  position: relative;
+  height: 78px;
+  border: 1px solid rgba(0,240,255,0.22);
+  border-bottom: 4px solid rgba(0,240,255,0.3);
+  border-radius: 16px;
+  background: rgba(15,23,42,0.92);
+  color: #fff;
+  font-size: 1.65rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px var(--primary);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+.flick-key.active {
+  background: rgba(0,240,255,0.18);
+  border-color: var(--primary);
+  box-shadow: 0 0 20px var(--primary-glow);
+  transform: scale(0.97);
+}
+
+.flick-key::after {
+  content: '↖  ↑  ↗\\A←   ●   →\\A↙  ↓  ↘';
+  white-space: pre;
+  position: absolute;
+  inset: auto 0 5px 0;
+  color: rgba(148,163,184,0.55);
+  font-size: 0.45rem;
+  line-height: 1.15;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.flick-spacer {
+  height: 78px;
+}
+
+.flick-direction {
+  width: min(100%, 390px);
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-areas:
+    ". up ."
+    "left guide right"
+    ". down .";
+  gap: 7px;
+  align-items: center;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.flick-arrow {
+  min-height: 42px;
+  padding: 6px 4px;
+  border: 1px solid rgba(0,240,255,0.18);
+  border-radius: 10px;
+  background: rgba(15,23,42,0.7);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.flick-arrow b {
+  color: var(--primary);
+  font-size: 0.7rem;
+}
+
+.flick-arrow-left { grid-area: left; }
+.flick-arrow-up { grid-area: up; }
+.flick-arrow-right { grid-area: right; }
+.flick-arrow-down { grid-area: down; }
+
+.flick-stage-guide {
+  grid-area: guide;
+  color: var(--text-muted);
+  font-size: 0.58rem;
+  line-height: 1.25;
+}
+
+.flick-direction .dir-center {
+  color: var(--primary);
+}
+
+@media (max-width: 420px) {
+  .flick-grid { gap: 8px; }
+  .flick-key { height: 72px; font-size: 1.5rem; }
+  .flick-spacer { height: 72px; }
+}
+
+
+/* かな入力式フリックUI */
+.flick-area {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  touch-action: none;
+}
+
+.flick-grid {
+  width: min(100%, 390px);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.flick-key {
+  position: relative;
+  height: 78px;
+  border: 1px solid rgba(0,240,255,0.22);
+  border-bottom: 4px solid rgba(0,240,255,0.3);
+  border-radius: 16px;
+  background: rgba(15,23,42,0.92);
+  color: #fff;
+  font-size: 1.65rem;
+  font-weight: 900;
+  text-shadow: 0 0 8px var(--primary);
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  overflow: visible;
+  z-index: 1;
+}
+
+.flick-key.active {
+  background: rgba(0,240,255,0.18);
+  border-color: var(--primary);
+  box-shadow: 0 0 20px var(--primary-glow);
+  transform: scale(0.97);
+  z-index: 100;
+}
+
+.key-label { pointer-events:none; }
+
+.flick-popup {
+  display: none;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 252px;
+  height: 252px;
+  transform: translate(-50%, -50%);
+  z-index: 200;
+  pointer-events: none;
+}
+
+.flick-key.active .flick-popup {
+  display: block;
+  animation: flickPopupIn 0.12s cubic-bezier(.2,.9,.25,1.2) both;
+}
+
+@keyframes flickPopupIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.82); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* 出てくる5ブロックは、押したキーと同じ78px四方 */
+.flick-option {
+  position: absolute;
+  width: 78px;
+  height: 78px;
+  box-sizing: border-box;
+  border: 1px solid rgba(0,240,255,0.55);
+  border-radius: 16px;
+  background: rgba(10,20,38,0.98);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  font-size: 0.68rem;
+  font-weight: 900;
+  white-space: normal;
+  box-shadow: 0 5px 18px rgba(0,0,0,0.45);
+  transition:
+    transform 0.12s cubic-bezier(.2,.9,.25,1.25),
+    background 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+  will-change: transform;
+}
+
+.opt-center {
+  left: 87px;
+  top: 87px;
+  font-size: 1.45rem;
+  background: rgba(0,240,255,0.18);
+  border-color: var(--primary);
+}
+
+.opt-up {
+  left: 87px;
+  top: 0;
+}
+
+.opt-left {
+  left: 0;
+  top: 87px;
+}
+
+.opt-right {
+  right: 0;
+  top: 87px;
+}
+
+.opt-down {
+  left: 87px;
+  bottom: 0;
+}
+
+.flick-option.chosen {
+  background: rgba(0,240,255,0.34);
+  border-color: var(--primary);
+  box-shadow: 0 0 12px var(--primary-glow), 0 0 28px rgba(0,240,255,0.22);
+  transform: scale(1.07);
+}
+
+/* 上下を選んだ後も、ブロックサイズは最初と完全に同じ。
+   上なら左上・右上、下なら左下・右下に配置する。 */
+.flick-popup.secondary-mode {
+  display: block;
+}
+
+.flick-popup.secondary-mode .opt-up,
+.flick-popup.secondary-mode .opt-down,
+.flick-popup.secondary-mode .opt-center {
+  display: none;
+}
+
+.flick-popup.secondary-mode .opt-left,
+.flick-popup.secondary-mode .opt-right {
+  display: flex;
+  width: 78px;
+  height: 78px;
+  top: auto;
+}
+
+.flick-popup.secondary-mode.stage-up .opt-left {
+  left: 0;
+  top: 0;
+}
+
+.flick-popup.secondary-mode.stage-up .opt-right {
+  right: 0;
+  top: 0;
+}
+
+.flick-popup.secondary-mode.stage-down .opt-left {
+  left: 0;
+  bottom: 0;
+}
+
+.flick-popup.secondary-mode.stage-down .opt-right {
+  right: 0;
+  bottom: 0;
+}
+
+/* 選択中は「吸い付く」ように軽く弾ませる */
+.flick-popup.secondary-mode .flick-option.chosen {
+  transform: scale(1.07);
+}
+
+@media (max-width: 420px) {
+  .flick-grid { gap: 8px; }
+  .flick-key { height: 72px; font-size: 1.5rem; }
+  .flick-popup { width: 228px; height: 228px; }
+  .flick-option { width: 72px; height: 72px; }
+  .opt-center { left: 78px; top: 78px; }
+  .opt-up { left: 78px; }
+  .opt-left { top: 78px; }
+  .opt-right { top: 78px; }
+  .opt-down { left: 78px; }
+  .flick-popup.secondary-mode .opt-left,
+  .flick-popup.secondary-mode .opt-right { width: 72px; height: 72px; }
+}
+
+/* リザルト画面 */
+.result-stat { font-family: var(--font-en); font-size: 1.3rem; color: var(--primary); text-align: center; margin: 15px 0; letter-spacing: 1px; }
+.new-record { color: var(--success); font-family: var(--font-en); font-weight: 900; text-shadow: 0 0 15px var(--success); font-size: 1.2rem; margin-bottom: 10px; animation: popIn 0.5s infinite alternate; }
+.ranking { width: 100%; margin: 20px 0; background: var(--bg-panel); border-radius: 16px; border: 1px solid var(--border-color-dim); padding: 10px; }
+.rank-row { display: flex; align-items: center; padding: 12px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); gap: 12px; }
+.rank-row:last-child { border-bottom: none; }
+.rank-row .rank { width: 35px; font-family: var(--font-en); color: var(--accent); font-weight: 900; font-size: 1.1rem; }
+.rank-row .rname { flex: 1; font-weight: 700; font-size: 1.1rem; }
+.rank-row .rscore { font-family: var(--font-en); color: var(--success); font-weight: 900; font-size: 1.2rem; text-shadow: 0 0 10px rgba(0,255,102,0.3); }
+
+/* オーバーレイ演出 */
+.overlay {
+  position: fixed; inset: 0; background: rgba(5,8,20,0.85); backdrop-filter: blur(3px);
+  z-index: 80; display: flex; align-items: center; justify-content: center; flex-direction: column;
+  font-family: var(--font-en); font-size: 4.5rem; font-weight: 900; text-align: center;
+  color: var(--primary); text-shadow: 0 0 20px var(--primary), 0 0 40px var(--primary);
+  letter-spacing: 5px; animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.overlay-sub { font-family: var(--font-jp); font-size: 1.5rem; margin-top: 10px; color: #fff; text-shadow: none; letter-spacing: 2px; }
+
+.notice { font-size: 0.75rem; color: #64748b; text-align: center; margin-top: 15px; line-height: 1.6; }
+</style>
+</head>
+<body>
+<div id="app">
+
+<button class="top-settings" onclick="openSettings()">⚙️</button>
+
+<!-- PROFILE SETUP -->
+<section id="screen-setup" class="screen hidden">
+  <h1>PROFILE SETUP</h1>
+  <div class="subtitle">PLAYER INITIALIZATION</div>
+  <div class="card">
+    <label style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; display:block;">プレイヤー名 (MAX 10)</label>
+    <input id="setup-name" maxlength="10" placeholder="名前を入力">
+    <div class="section-title">アバター選択</div>
+    <div id="setup-avatars" class="avatar-grid"></div>
+    <button class="btn" onclick="completeSetup()" style="margin-top: 10px;">SYSTEM START</button>
+  </div>
+</section>
+
+<!-- TITLE / SOLO -->
+<section id="screen-title" class="screen hidden">
+  <h1>KOBUN FLICKER</h1>
+  <div class="subtitle">ver.1.0</div>
+
+  <div class="profile" style="width:100%; margin-bottom:15px">
+    <div class="avatar" id="title-avatar">👤</div>
+    <div>
+      <div class="name" id="title-name">---</div>
+      <div class="best">BEST AVG: <span id="title-best">--</span></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:10px; text-align:center;">
+    <div style="font-family:var(--font-en); color:var(--primary); font-size:0.9rem; letter-spacing:2px; margin-bottom:8px;">
+      SOLO MODE
+    </div>
+    <div style="color:var(--text-muted); font-size:0.9rem; line-height:1.7;">
+      古文単語の活用を一人でトレーニング。<br>
+      全10問のタイムアタックで自己ベストを更新しよう。
+    </div>
+  </div>
+
+  <button class="btn green" onclick="startSolo()">▶ 一人で特訓</button>
+
+  <div class="notice">
+    現在はプロトタイプ版（ローカル）です。
+  </div>
+</section>
+
+<!-- GAME -->
+<section id="screen-game" class="screen hidden" style="justify-content:flex-start; padding-top:20px">
+  <div id="hud">
+    <div class="scoreboard">
+      <div class="score" id="my-score-box">SCORE <span>0</span></div>
+      <div style="font-size:1.2rem; font-weight:900; color:var(--text-muted)">
+        Q <span id="q-num" style="color:#fff">1</span><span style="font-size:0.8rem">/10</span>
+      </div>
+    </div>
+    <div class="progress"><div id="progress-bar"></div></div>
+  </div>
+
+  <div class="word-card" id="word-card">
+    <div id="word-display">書く</div>
+    <div id="status-text">「行」を選べ！</div>
+  </div>
+
+  <!-- フリック入力パネル -->
+  <div id="flick-area" class="flick-area">
+    <div id="flick-hint" class="flick-hint">
+      かなを選んでフリック
+    </div>
+
+    <div id="flick-grid" class="flick-grid">
+      <button class="flick-key" data-gyo="あ">
+        <span class="key-label">あ</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="か">
+        <span class="key-label">か</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="さ">
+        <span class="key-label">さ</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+
+      <button class="flick-key" data-gyo="た">
+        <span class="key-label">た</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="な">
+        <span class="key-label">な</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="は">
+        <span class="key-label">は</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+
+      <button class="flick-key" data-gyo="ま">
+        <span class="key-label">ま</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="や">
+        <span class="key-label">や</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <button class="flick-key" data-gyo="ら">
+        <span class="key-label">ら</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+
+      <div class="flick-spacer"></div>
+      <button class="flick-key" data-gyo="わ">
+        <span class="key-label">わ</span>
+        <span class="flick-popup" aria-hidden="true">
+          <span class="flick-option opt-up"></span>
+          <span class="flick-option opt-left"></span>
+          <span class="flick-option opt-center"></span>
+          <span class="flick-option opt-right"></span>
+          <span class="flick-option opt-down"></span>
+        </span>
+      </button>
+      <div class="flick-spacer"></div>
+    </div>
+  </div>
+
+  <button class="btn gray small" onclick="confirmLeaveGame()" style="margin-top:auto; align-self:center;">ABORT MISSION</button>
+</section>
+
+<!-- RESULT -->
+<section id="screen-result" class="screen hidden">
+  <h1 id="result-title">COMPLETE!</h1>
+  <p id="result-detail" style="font-family:var(--font-jp); font-weight:700; font-size:1.4rem; margin:15px 0; text-align:center; white-space:pre-line; color:#fff"></p>
+  <div id="new-record" class="new-record hidden">🏆 NEW RECORD!</div>
+  <div class="result-stat" id="result-best"></div>
+  
+  <div style="width:100%; display:flex; gap:10px; margin-top:20px;">
+    <button class="btn gray" onclick="showScreen('screen-title')" style="flex:1">HOME</button>
+    <button class="btn green" onclick="startSolo()" style="flex:2">PLAY AGAIN</button>
+  </div>
+</section>
+
+<!-- SETTINGS -->
+<div id="settings-modal" class="modal-backdrop hidden">
+  <div class="modal">
+    <h2>PROFILE SETTINGS</h2>
+    <div class="profile" style="margin-bottom:20px">
+      <div class="avatar" id="settings-avatar">👤</div>
+      <div><div class="name" id="settings-name">---</div><div class="best">BEST AVG: <span id="settings-best">--</span></div></div>
+    </div>
+    <label style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; display:block;">プレイヤー名</label>
+    <input id="edit-name" maxlength="10" placeholder="名前を入力">
+    <div class="section-title">アバター選択</div>
+    <div id="settings-avatars" class="avatar-grid"></div>
+    <button class="btn" onclick="saveSettings()">SAVE</button>
+    <button class="btn gray" onclick="closeSettings()" style="margin-top:10px">CLOSE</button>
+  </div>
+</div>
+
+
+
+<!-- OVERLAY -->
+<div id="overlay" class="overlay hidden">
+  <div id="overlay-main"></div>
+  <div id="overlay-sub" class="overlay-sub"></div>
+</div>
+
+</div>
+
+<script>
+// ---------- データと初期化 ----------
+const AVATARS = ['🐱','🐶','🦊','🤖','👾','💀','🥷','⚡️'];
+const DEFAULT_AVATAR = '👤';
+const MAX_Q = 10;
+
+const pool = [
+ {word:"書く",gyo:"か",type:"四段活用",sub:null},
+ {word:"行く",gyo:"か",type:"四段活用",sub:null},
+ {word:"思ふ",gyo:"は",type:"四段活用",sub:null},
+ {word:"咲く",gyo:"か",type:"四段活用",sub:null},
+ {word:"詠む",gyo:"ま",type:"四段活用",sub:null},
+ {word:"立つ",gyo:"た",type:"四段活用",sub:null},
+ {word:"干る",gyo:"は",type:"上",sub:"一段活用"},
+ {word:"射る",gyo:"や",type:"上",sub:"一段活用"},
+ {word:"着る",gyo:"か",type:"上",sub:"一段活用"},
+ {word:"似る",gyo:"な",type:"上",sub:"一段活用"},
+ {word:"見る",gyo:"ま",type:"上",sub:"一段活用"},
+ {word:"居る",gyo:"わ",type:"上",sub:"一段活用"},
+ {word:"蹴る",gyo:"か",type:"下",sub:"一段活用"},
+ {word:"起く",gyo:"か",type:"上",sub:"二段活用"},
+ {word:"落つ",gyo:"た",type:"上",sub:"二段活用"},
+ {word:"過ぐ",gyo:"か",type:"上",sub:"二段活用"},
+ {word:"恨む",gyo:"ま",type:"上",sub:"二段活用"},
+ {word:"受く",gyo:"か",type:"下",sub:"二段活用"},
+ {word:"覚ゆ",gyo:"や",type:"下",sub:"二段活用"},
+ {word:"出づ",gyo:"た",type:"下",sub:"二段活用"},
+ {word:"来 (く)",gyo:"か",type:"変格活用",sub:null},
+ {word:"す",gyo:"さ",type:"変格活用",sub:null},
+ {word:"死ぬ",gyo:"な",type:"変格活用",sub:null},
+ {word:"あり",gyo:"ら",type:"変格活用",sub:null}
+];
+
+let myName = localStorage.getItem('kobun_name') || '';
+let myAvatar = localStorage.getItem('kobun_avatar') || DEFAULT_AVATAR;
+let bestAvg = parseFloat(localStorage.getItem('kobun_best_avg'));
+if(!Number.isFinite(bestAvg)) bestAvg = null;
+
+let mode = 'solo';
+let questions = [], qIndex = 0, currentQ = null;
+let isPlaying = false, isWaitingNext = false, startTime = 0, totalSolveTime = 0, myScore = 0;
+
+// ---------- ユーティリティ ----------
+function shuffle(a){
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+}
+function makeAvatarGrid(containerId){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = '';
+  AVATARS.forEach(a => {
+    const d = document.createElement('div');
+    d.className = 'avatar-item' + (a === myAvatar ? ' selected' : '');
+    d.textContent = a;
+    d.onclick = () => {
+      myAvatar = a;
+      el.querySelectorAll('.avatar-item').forEach(x => x.classList.remove('selected'));
+      d.classList.add('selected');
+    };
+    el.appendChild(d);
+  });
+}
+
+function updateProfileUI(){
+  const displayBest = bestAvg === null ? '--' : bestAvg.toFixed(2) + 's';
+  document.getElementById('title-name').textContent = myName;
+  document.getElementById('title-avatar').textContent = myAvatar;
+  document.getElementById('title-best').textContent = displayBest;
+  document.getElementById('settings-name').textContent = myName;
+  document.getElementById('settings-avatar').textContent = myAvatar;
+  document.getElementById('settings-best').textContent = displayBest;
+  document.getElementById('edit-name').value = myName;
+}
+
+function completeSetup(){
+  const n = document.getElementById('setup-name').value.trim();
+  if(!n){ alert('名前を入力してください！'); return; }
+  myName = n;
+  localStorage.setItem('kobun_name', myName);
+  localStorage.setItem('kobun_avatar', myAvatar);
+  updateProfileUI();
+  showScreen('screen-title');
+}
+
+function openSettings(){
+  if(!myName) return;
+  makeAvatarGrid('settings-avatars');
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+
+function closeSettings(){
+  document.getElementById('settings-modal').classList.add('hidden');
+}
+
+function saveSettings(){
+  const n = document.getElementById('edit-name').value.trim();
+  if(!n){ alert('名前を入力してください！'); return; }
+  myName = n;
+  localStorage.setItem('kobun_name', myName);
+  localStorage.setItem('kobun_avatar', myAvatar);
+  updateProfileUI();
+  closeSettings();
+}
+
+function triggerAnimation(el) {
+  el.style.animation = 'none';
+  el.offsetHeight; // force reflow
+  el.style.animation = null;
+}
+
+// ---------- UI表示系 ----------
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  const target = document.getElementById(id);
+  target.classList.remove('hidden');
+  triggerAnimation(target);
+}
+function showOverlay(main, sub=''){
+  document.getElementById('overlay-main').textContent = main;
+  document.getElementById('overlay-sub').textContent = sub;
+  document.getElementById('overlay').classList.remove('hidden');
+}
+function hideOverlay(){ document.getElementById('overlay').classList.add('hidden'); }
+
+// ---------- プロフィール設定 ----------
+// ソロ専用版ではSOLO機能を使用しません。
+
+// ---------- ゲーム進行 ----------
+function startSolo(){
+  mode = 'solo';
+  questions = shuffle([...pool]).slice(0, MAX_Q);
+  myScore = 0;
+  qIndex = 0;
+  totalSolveTime = 0;
+  showScreen('screen-game');
+  startGame();
+}
+
+function startGame(){
+  isPlaying = true;
+  isWaitingNext = false;
+  qIndex = 0;
+  myScore = 0;
+  totalSolveTime = 0;
+  document.querySelector('#my-score-box span').textContent = '0';
+  setQuestion();
+}
+
+
+function setQuestion(){
+  if(!isPlaying) return;
+  isWaitingNext = false;
+  currentQ = questions[qIndex];
+  startTime = performance.now();
+
+  document.getElementById('q-num').textContent = qIndex + 1;
+  document.getElementById('progress-bar').style.width = ((qIndex)/MAX_Q*100) + '%';
+
+  const wordDisplay = document.getElementById('word-display');
+  wordDisplay.textContent = currentQ.word;
+  triggerAnimation(document.getElementById('word-card'));
+
+  document.getElementById('status-text').textContent = 'かなを選んでフリック！';
+  document.getElementById('status-text').style.color = "var(--accent)";
+  document.getElementById('flick-hint').textContent = '押したまま上下へ → 一段/二段を選択 → 指を離す';
+
+  document.querySelectorAll('.flick-key').forEach(k => { k.classList.remove('active'); k.querySelector('.flick-popup').setAttribute('aria-hidden','true'); });
+  document.getElementById('flick-area').style.pointerEvents = 'auto';
+  updateScoreUI();
+}
+
+function updateScoreUI(){
+  document.querySelector('#my-score-box span').textContent = myScore;
+}
+
+/*
+  回答ルール
+  ─────────────────────────
+  かなキーから
+    左  → 四段活用
+    右  → 変格活用
+    上  → 上
+    下  → 下
+
+  上を選んだ後
+    左 → 上一段活用
+    右 → 上二段活用
+
+  下を選んだ後
+    左 → 下一段活用
+    右 → 下二段活用
+
+  「指を離した瞬間」にだけ判定する。
+*/
+function submitFlick(gyo, dx, dy){
+  if(!isPlaying || isWaitingNext) return;
+  const ax = Math.abs(dx), ay = Math.abs(dy);
+  const threshold = 30;
+
+  if(ax > ay && ax >= threshold){
+    checkFlickAnswer(dx < 0 ? '四段活用' : '変格活用', null, gyo);
+  }else if(ay >= threshold){
+    wrong();
+  }
+}
+
+let flickStage = null;
+
+function checkFlickAnswer(answer, verticalType, gyo){
+  if(!isPlaying || isWaitingNext) return;
+
+  // 行が違えば、活用が合っていても絶対に正解にしない。
+  if(gyo !== currentQ.gyo){
+    wrong();
+    return;
+  }
+
+  if(verticalType === '上' || verticalType === '下'){
+    if(currentQ.type === verticalType && answer === currentQ.sub){
+      solvedLocally();
+    }else{
+      wrong();
+    }
+    return;
+  }
+
+  if(answer === currentQ.type){
+    solvedLocally();
+  }else{
+    wrong();
+  }
+}
+
+// ---------- フリック入力イベント ----------
+let flickPointer = null;
+
+function setPopupLabels(key, stage=null){
+  const p = key.querySelector('.flick-popup');
+  if(!p) return;
+
+  p.classList.remove('stage-up','stage-down','secondary-mode');
+
+  p.querySelector('.opt-center').textContent = key.dataset.gyo;
+  p.querySelector('.opt-up').textContent = '上';
+  p.querySelector('.opt-down').textContent = '下';
+
+  if(stage === '上'){
+    p.querySelector('.opt-left').textContent = '上一段活用';
+    p.querySelector('.opt-right').textContent = '上二段活用';
+  }else if(stage === '下'){
+    p.querySelector('.opt-left').textContent = '下一段活用';
+    p.querySelector('.opt-right').textContent = '下二段活用';
+  }else{
+    p.querySelector('.opt-left').textContent = '四段活用';
+    p.querySelector('.opt-right').textContent = '変格活用';
+  }
+}
+
+function updateFlickPopupStage(key, stage){
+  const p = key.querySelector('.flick-popup');
+  if(!p) return;
+
+  setPopupLabels(key, stage);
+  p.classList.add('secondary-mode', stage === '上' ? 'stage-up' : 'stage-down');
+
+  // 上/下を選択した時点で、中央に戻れるよう中央キーを常に残す。
+  p.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
+  p.querySelector('.opt-center')?.classList.add('chosen');
+}
+
+function initFlickInput(){
+  document.querySelectorAll('.flick-key').forEach(key => {
+    key.addEventListener('pointerdown', e => {
+      if(!isPlaying || isWaitingNext) return;
+
+      const popup = key.querySelector('.flick-popup');
+      setPopupLabels(key, null);
+      popup.classList.remove('secondary-mode','stage-up','stage-down');
+      popup.setAttribute('aria-hidden','false');
+
+      flickPointer = {
+        id:e.pointerId,
+        key,
+        gyo:key.dataset.gyo,
+        x:e.clientX,
+        y:e.clientY,
+        stage:null,
+        secondaryDirection:null
+      };
+
+      key.classList.add('active');
+      key.setPointerCapture?.(e.pointerId);
+      e.preventDefault();
+    });
+
+    key.addEventListener('pointermove', e => {
+      if(!flickPointer || flickPointer.id !== e.pointerId) return;
+
+      const f = flickPointer;
+      const dx = e.clientX - f.x;
+      const dy = e.clientY - f.y;
+      const ax = Math.abs(dx);
+      const ay = Math.abs(dy);
+      const threshold = 22;
+      const centerRadius = 26;
+
+      f.key.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
+
+      // 中央へ戻ったら、必ず最初の「上下左右」表示へ戻す。
+      if(ax < centerRadius && ay < centerRadius){
+        if(f.stage !== null){
+          f.stage = null;
+          f.secondaryDirection = null;
+          const popup = f.key.querySelector('.flick-popup');
+          popup.classList.remove('secondary-mode','stage-up','stage-down');
+          setPopupLabels(f.key, null);
+          document.getElementById('flick-hint').textContent =
+            '上下左右から選択できます';
+        }
+        f.key.querySelector('.opt-center')?.classList.add('chosen');
+        e.preventDefault();
+        return;
+      }
+
+      if(!f.stage){
+        // 第1段階：上下左右。
+        // 上下方向を少し優先し、斜めに入ったときも自然に上下へ吸着する。
+        if(ay >= threshold && ay >= ax * 0.72){
+          f.stage = dy < 0 ? '上' : '下';
+          f.secondaryDirection = null;
+          updateFlickPopupStage(f.key, f.stage);
+          f.key.querySelector(dy < 0 ? '.opt-up' : '.opt-down')?.classList.add('chosen');
+
+          document.getElementById('flick-hint').textContent =
+            f.stage === '上'
+              ? '左上＝上一段活用　右上＝上二段活用'
+              : '左下＝下一段活用　右下＝下二段活用';
+        }else if(ax >= threshold && ax > ay * 0.95){
+          f.key.querySelector(dx < 0 ? '.opt-left' : '.opt-right')?.classList.add('chosen');
+        }else{
+          f.key.querySelector('.opt-center')?.classList.add('chosen');
+        }
+      }else{
+        // 第2段階：上なら左上/右上、下なら左下/右下。
+        // 縦方向を維持しつつ左右へ動かしたときだけ確定候補を切り替える。
+        const verticalOK = f.stage === '上' ? dy < -8 : dy > 8;
+
+        if(verticalOK && dx < -threshold){
+          f.secondaryDirection = 'left';
+          f.key.querySelector('.opt-left')?.classList.add('chosen');
+        }else if(verticalOK && dx > threshold){
+          f.secondaryDirection = 'right';
+          f.key.querySelector('.opt-right')?.classList.add('chosen');
+        }else{
+          f.secondaryDirection = null;
+        }
+      }
+
+      e.preventDefault();
+    });
+
+    key.addEventListener('pointerup', e => {
+      if(!flickPointer || flickPointer.id !== e.pointerId) return;
+
+      const f = flickPointer;
+      const dx = e.clientX - f.x;
+      const dy = e.clientY - f.y;
+      const stage = f.stage;
+      const secondaryDirection = f.secondaryDirection;
+
+      f.key.classList.remove('active');
+      f.key.querySelector('.flick-popup').setAttribute('aria-hidden','true');
+      f.key.querySelector('.flick-popup').classList.remove('secondary-mode','stage-up','stage-down');
+      f.key.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
+
+      // 指を離した瞬間だけ確定。
+      if(stage === '上' || stage === '下'){
+        if(secondaryDirection === 'left'){
+          checkFlickAnswer('一段活用', stage, f.gyo);
+        }else if(secondaryDirection === 'right'){
+          checkFlickAnswer('二段活用', stage, f.gyo);
+        }else if(Math.abs(dx) < 26 && Math.abs(dy) < 26){
+          // 中央で離した場合はキャンセル。
+          document.getElementById('flick-hint').textContent = '中央に戻しました';
+        }else{
+          wrong();
+        }
+      }else{
+        submitFlick(f.gyo, dx, dy);
+      }
+
+      flickPointer = null;
+      e.preventDefault();
+    });
+
+    key.addEventListener('pointercancel', e => {
+      if(flickPointer && flickPointer.id === e.pointerId){
+        flickPointer.key.classList.remove('active');
+        flickPointer.key.querySelector('.flick-popup').setAttribute('aria-hidden','true');
+        flickPointer.key.querySelector('.flick-popup').classList.remove('secondary-mode','stage-up','stage-down');
+        flickPointer = null;
+      }
+    });
+  });
+}
+function wrong(){
+  const card = document.getElementById('word-card');
+  card.style.animation = 'none';
+  card.offsetHeight;
+  card.style.animation = 'shake 0.4s';
+  navigator.vibrate && navigator.vibrate(50); // モバイル向けの振動
+}
+
+function solvedLocally(){
+  if(!isPlaying || isWaitingNext) return;
+  isWaitingNext = true;
+  totalSolveTime += (performance.now() - startTime) / 1000;
+  myScore++;
+  updateScoreUI();
+  showOverlay('POINT!', '');
+  
+  setTimeout(() => {
+    hideOverlay();
+    if(qIndex + 1 < MAX_Q) { qIndex++; setQuestion(); }
+    else endGame();
+  }, 700);
+}
+
+function endGame(){
+  isPlaying = false;
+  isWaitingNext = true;
+  hideOverlay();
+  showScreen('screen-result');
+
+  const title = document.getElementById('result-title');
+  const detail = document.getElementById('result-detail');
+  const newRecord = document.getElementById('new-record');
+  const bestEl = document.getElementById('result-best');
+
+  newRecord.classList.add('hidden');
+  document.getElementById('progress-bar').style.width = '100%';
+
+  title.textContent = 'MISSION CLEAR';
+  title.style.color = "var(--primary)";
+
+  const avg = totalSolveTime / Math.max(1, myScore);
+  let record = false;
+
+  if(bestAvg === null || avg < bestAvg){
+    bestAvg = avg;
+    localStorage.setItem('kobun_best_avg', bestAvg.toFixed(4));
+    record = true;
+  }
+
+  detail.innerHTML =
+    `SCORE: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${myScore}</span> / ${MAX_Q}<br>` +
+    `AVG TIME: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${avg.toFixed(2)}</span> s`;
+
+  bestEl.textContent = `YOUR BEST: ${bestAvg.toFixed(2)}s`;
+  if(record) newRecord.classList.remove('hidden');
+  updateProfileUI();
+}
+
+function confirmLeaveGame(){
+  if(confirm('現在のバトルを放棄して離脱しますか？')){
+    isPlaying = false; hideOverlay(); showScreen('screen-title');
+  }
+}
+
+// ---------- 初期化 ----------
+window.addEventListener('DOMContentLoaded', () => {
+  makeAvatarGrid('setup-avatars');
+  initFlickInput();
+  if(!myName){
+    showScreen('screen-setup');
+  } else {
+      updateProfileUI();
+    showScreen('screen-title');
+  }
+});
+</script>
+</body>
+</html>

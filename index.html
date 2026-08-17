@@ -168,7 +168,7 @@ h1 {
   box-shadow: 0 0 15px var(--primary-glow);
 }
 .name { font-weight: 900; font-size: 1.2rem; letter-spacing: 1px; }
-.best { font-family: var(--font-en); color: var(--accent); font-size: 0.8rem; margin-top: 4px; letter-spacing: 1px; }
+.best { font-family: var(--font-en); color: var(--accent); font-size: 0.9rem; margin-top: 4px; letter-spacing: 1px; }
 
 /* ボタンデザイン */
 .btn {
@@ -593,6 +593,75 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
 }
 .overlay-sub { font-family: var(--font-jp); font-size: 1.5rem; margin-top: 10px; color: #fff; text-shadow: none; letter-spacing: 2px; }
 
+/* モード選択 */
+.mode-tabs {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 10px 0 15px;
+}
+.mode-tab {
+  position: relative;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 13px 10px;
+  background: rgba(0,0,0,0.45);
+  color: var(--text-muted);
+  font-family: var(--font-en);
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+.mode-tab.active {
+  color: #fff;
+  border-color: var(--primary);
+  background: rgba(0,240,255,0.1);
+  box-shadow: 0 0 15px var(--primary-glow);
+}
+.mode-tab.locked {
+  cursor: not-allowed;
+  opacity: 0.45;
+  border-color: #475569;
+}
+.mode-tab .lock {
+  margin-left: 6px;
+  font-family: var(--font-jp);
+}
+.training-games {
+  width: 100%;
+  display: grid;
+  gap: 10px;
+}
+.game-select-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(0,240,255,0.08), rgba(0,0,0,0.65));
+  color: #fff;
+  transition: all 0.15s ease;
+}
+.game-select-card:active {
+  transform: translateY(2px) scale(0.99);
+}
+.game-select-card .game-name {
+  font-weight: 900;
+  font-size: 1.05rem;
+  letter-spacing: 1px;
+}
+.game-select-card .game-desc {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  line-height: 1.6;
+  margin-top: 5px;
+}
+.game-select-card .game-arrow {
+  float: right;
+  color: var(--primary);
+  font-family: var(--font-en);
+}
+
 .notice { font-size: 0.75rem; color: #64748b; text-align: center; margin-top: 15px; line-height: 1.6; }
 </style>
 </head>
@@ -614,34 +683,52 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
   </div>
 </section>
 
-<!-- TITLE / SOLO -->
+<!-- TITLE / MODE SELECT -->
 <section id="screen-title" class="screen hidden">
   <h1>KOBUN FLICKER</h1>
-  <div class="subtitle">ver.1.3</div>
+  <div class="subtitle">ver2.0</div>
 
   <div class="profile" style="width:100%; margin-bottom:15px">
     <div class="avatar" id="title-avatar">👤</div>
     <div>
       <div class="name" id="title-name">---</div>
-      <div class="best">BEST AVG: <span id="title-best">--</span></div>
+      <div class="best">
+        BEST AVG<br>
+        <span style="font-size:0.6rem; font-family:var(--font-en);">
+          KOBUN : <span id="title-best-kobun" style="font-size:0.6rem; font-family:var(--font-en);">--</span><br>
+          GENDAIBUN : <span id="title-best-genbun" style="font-size:0.6rem; font-family:var(--font-en);">--</span>
+        </span>
+      </div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:10px; text-align:center;">
-    <div style="font-family:var(--font-en); color:var(--primary); font-size:0.9rem; letter-spacing:2px; margin-bottom:8px;">
-      SOLO MODE
-    </div>
-    <div style="color:var(--text-muted); font-size:0.9rem; line-height:1.7;">
-      古文単語の活用を一人でトレーニング。<br>
-      全10問のタイムアタックで自己ベストを更新しよう。<br>
-      <p style="font-size:0.7rem;">（※四段活用の可能動詞は出題しません。）</p>
-    </div>
+  <div class="mode-tabs" role="tablist" aria-label="モード選択">
+    <button class="mode-tab active" id="tab-training" onclick="selectModeTab('training')">TRAINING</button>
+    <button class="mode-tab locked" id="tab-battle" disabled aria-disabled="true">BATTLE <span class="lock">🔒</span></button>
   </div>
 
-  <button class="btn green" onclick="startSolo()">▶ 一人で特訓</button>
+  <div id="training-panel" class="card" style="margin-top:0; text-align:left;">
+    <div style="font-family:var(--font-en); color:var(--primary); font-size:0.9rem; letter-spacing:2px; margin-bottom:10px; text-align:center;">
+      TRAINING MODE
+    </div>
+
+    <div class="training-games">
+      <button class="game-select-card" onclick="startSolo()">
+        <span class="game-arrow">▶</span>
+        <div class="game-name">古文フリッカー</div>
+        <div class="game-desc">古文動詞の活用をフリックで判定。全10問をすべて正解してクリア。</div>
+      </button>
+
+      <button class="game-select-card" onclick="startGenbun()">
+        <span class="game-arrow">▶</span>
+        <div class="game-name">現代文フリッカー</div>
+        <div class="game-desc">現代日本語の動詞の活用をフリックで判定。全10問をすべて正解してクリア。</div>
+      </button>
+    </div>
+  </div>
 
   <div class="notice">
-    現在はプロトタイプ版（ローカル）です。
+    BATTLE MODE は現在開発中です。
   </div>
 </section>
 
@@ -789,7 +876,7 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
   
   <div style="width:100%; display:flex; gap:10px; margin-top:20px;">
     <button class="btn gray" onclick="showScreen('screen-title')" style="flex:1">HOME</button>
-    <button class="btn green" onclick="startSolo()" style="flex:2">PLAY AGAIN</button>
+    <button class="btn green" id="play-again-btn" onclick="startSolo()" style="flex:2">PLAY AGAIN</button>
   </div>
 </section>
 
@@ -799,7 +886,16 @@ input:focus { border-color: var(--primary); box-shadow: 0 0 10px var(--primary-g
     <h2>PROFILE SETTINGS</h2>
     <div class="profile" style="margin-bottom:20px">
       <div class="avatar" id="settings-avatar">👤</div>
-      <div><div class="name" id="settings-name">---</div><div class="best">BEST AVG: <span id="settings-best">--</span></div></div>
+      <div>
+        <div class="name" id="settings-name">---</div>
+        <div class="best">
+          BEST AVG<br>
+          <span style="font-size:0.6rem; font-family:var(--font-en);">
+            KOBUN : <span id="settings-best-kobun" style="font-size:0.6rem; font-family:var(--font-en);">--</span><br>
+            GENDAIBUN : <span id="settings-best-genbun" style="font-size:0.6rem; font-family:var(--font-en);">--</span>
+          </span>
+        </div>
+      </div>
     </div>
     <label style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 5px; display:block;">プレイヤー名</label>
     <input id="edit-name" maxlength="10" placeholder="名前を入力">
@@ -829,6 +925,8 @@ const MAX_Q = 10;
 const pool = [
   {word:"来",gyo:"か",type:"変格活用",sub:null},
   {word:"す",gyo:"さ",type:"変格活用",sub:null},
+  {word:"重んず",gyo:"さ",type:"変格活用",sub:null},
+  {word:"軽んず",gyo:"さ",type:"変格活用",sub:null},
   {word:"死ぬ",gyo:"な",type:"変格活用",sub:null},
   {word:"往ぬ",gyo:"な",type:"変格活用",sub:null},
   {word:"去ぬ",gyo:"な",type:"変格活用",sub:null},
@@ -864,6 +962,8 @@ const pool = [
   {word:"試む",gyo:"ま",type:"上",sub:"二段活用"},
   {word:"尽く",gyo:"か",type:"上",sub:"二段活用"},
   {word:"懲る",gyo:"ら",type:"上",sub:"二段活用"},
+  {word:"得",gyo:"あ",type:"下",sub:"二段活用"},
+  {word:"心得",gyo:"あ",type:"下",sub:"二段活用"},
   {word:"受く",gyo:"か",type:"下",sub:"二段活用"},
   {word:"出づ",gyo:"た",type:"下",sub:"二段活用"},
   {word:"見す",gyo:"さ",type:"下",sub:"二段活用"},
@@ -942,13 +1042,238 @@ const pool = [
   {word:"帰る",gyo:"ら",type:"四段活用",sub:null}
 ];
 
+const genbunPool = [
+  {word:"書く",gyo:"か",type:"五段活用",sub:null},
+  {word:"読む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"話す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"待つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"死ぬ",gyo:"な",type:"五段活用",sub:null},
+  {word:"遊ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"帰る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"走る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"作る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"使う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"買う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"歌う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"思う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"笑う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"泳ぐ",gyo:"か",type:"五段活用",sub:null},
+  {word:"急ぐ",gyo:"か",type:"五段活用",sub:null},
+  {word:"働く",gyo:"か",type:"五段活用",sub:null},
+  {word:"聞く",gyo:"か",type:"五段活用",sub:null},
+  {word:"直す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"消す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"探す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"立つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"持つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"育つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"飛ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"選ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"呼ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"住む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"休む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"進む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"望む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"入る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"切る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"知る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"取る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"歩く",gyo:"か",type:"五段活用",sub:null},
+  {word:"咲く",gyo:"か",type:"五段活用",sub:null},
+  {word:"置く",gyo:"か",type:"五段活用",sub:null},
+  {word:"叩く",gyo:"か",type:"五段活用",sub:null},
+  {word:"磨く",gyo:"か",type:"五段活用",sub:null},
+  {word:"漕ぐ",gyo:"か",type:"五段活用",sub:null},
+  {word:"騒ぐ",gyo:"か",type:"五段活用",sub:null},
+  {word:"脱ぐ",gyo:"か",type:"五段活用",sub:null},
+  {word:"渡す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"押す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"動かす",gyo:"さ",type:"五段活用",sub:null},
+  {word:"落とす",gyo:"さ",type:"五段活用",sub:null},
+  {word:"返す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"励ます",gyo:"さ",type:"五段活用",sub:null},
+  {word:"試す",gyo:"さ",type:"五段活用",sub:null},
+  {word:"打つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"勝つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"保つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"断つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"撃つ",gyo:"た",type:"五段活用",sub:null},
+  {word:"洗う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"会う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"払う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"拾う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"誘う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"言う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"願う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"通う",gyo:"わ",type:"五段活用",sub:null},
+  {word:"並ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"結ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"喜ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"叫ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"転ぶ",gyo:"は",type:"五段活用",sub:null},
+  {word:"頼む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"包む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"悩む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"沈む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"踏む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"組む",gyo:"ま",type:"五段活用",sub:null},
+  {word:"座る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"送る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"乗る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"折る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"通る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"登る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"踊る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"渡る",gyo:"ら",type:"五段活用",sub:null},
+  {word:"見る",gyo:"ま",type:"上一段活用",sub:null},
+  {word:"起きる",gyo:"か",type:"上一段活用",sub:null},
+  {word:"着る",gyo:"か",type:"上一段活用",sub:null},
+  {word:"降りる",gyo:"ら",type:"上一段活用",sub:null},
+  {word:"借りる",gyo:"ら",type:"上一段活用",sub:null},
+  {word:"できる",gyo:"か",type:"上一段活用",sub:null},
+  {word:"生きる",gyo:"か",type:"上一段活用",sub:null},
+  {word:"落ちる",gyo:"た",type:"上一段活用",sub:null},
+  {word:"閉じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"信じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"満ちる",gyo:"た",type:"上一段活用",sub:null},
+  {word:"伸びる",gyo:"は",type:"上一段活用",sub:null},
+  {word:"浴びる",gyo:"は",type:"上一段活用",sub:null},
+  {word:"似る",gyo:"な",type:"上一段活用",sub:null},
+  {word:"煮る",gyo:"な",type:"上一段活用",sub:null},
+  {word:"存じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"演じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"感じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"生じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"命じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"投じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"論じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"通じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"応じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"報じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"案じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"免じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"過ぎる",gyo:"か",type:"上一段活用",sub:null},
+  {word:"省みる",gyo:"ま",type:"上一段活用",sub:null},
+  {word:"試みる",gyo:"ま",type:"上一段活用",sub:null},
+  {word:"率いる",gyo:"は",type:"上一段活用",sub:null},
+  {word:"強いる",gyo:"あ",type:"上一段活用",sub:null},
+  {word:"報いる",gyo:"あ",type:"上一段活用",sub:null},
+  {word:"老いる",gyo:"あ",type:"上一段活用",sub:null},
+  {word:"用いる",gyo:"あ",type:"上一段活用",sub:null},
+  {word:"重んじる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"軽んじる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"講じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"帯びる",gyo:"は",type:"上一段活用",sub:null},
+  {word:"染みる",gyo:"ま",type:"上一段活用",sub:null},
+  {word:"恥じる",gyo:"さ",type:"上一段活用",sub:null},
+  {word:"食べる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"教える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"考える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"受ける",gyo:"か",type:"下一段活用",sub:null},
+  {word:"捨てる",gyo:"た",type:"下一段活用",sub:null},
+  {word:"寝る",gyo:"な",type:"下一段活用",sub:null},
+  {word:"出る",gyo:"た",type:"下一段活用",sub:null},
+  {word:"見せる",gyo:"さ",type:"下一段活用",sub:null},
+  {word:"述べる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"忘れる",gyo:"ら",type:"下一段活用",sub:null},
+  {word:"覚える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"調べる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"助ける",gyo:"か",type:"下一段活用",sub:null},
+  {word:"増える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"変える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"消える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"迎える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"伝える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"決める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"褒める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"始める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"集める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"疲れる",gyo:"ら",type:"下一段活用",sub:null},
+  {word:"慣れる",gyo:"ら",type:"下一段活用",sub:null},
+  {word:"折れる",gyo:"ら",type:"下一段活用",sub:null},
+  {word:"破れる",gyo:"ら",type:"下一段活用",sub:null},
+  {word:"現れる",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"建てる",gyo:"た",type:"下一段活用",sub:null},
+  {word:"曲げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"投げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"挙げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"止める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"広げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"育てる",gyo:"た",type:"下一段活用",sub:null},
+  {word:"負ける",gyo:"か",type:"下一段活用",sub:null},
+  {word:"逃げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"遂げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"冷える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"燃える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"抑える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"超える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"添える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"唱える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"与える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"控える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"任せる",gyo:"さ",type:"下一段活用",sub:null},
+  {word:"支える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"抱える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"訴える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"構える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"踏まえる",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"叶える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"蓄える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"備える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"答える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"終える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"生える",gyo:"あ",type:"下一段活用",sub:null},
+  {word:"つける",gyo:"か",type:"下一段活用",sub:null},
+  {word:"告げる",gyo:"か",type:"下一段活用",sub:null},
+  {word:"避ける",gyo:"か",type:"下一段活用",sub:null},
+  {word:"比べる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"浮かべる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"並べる",gyo:"は",type:"下一段活用",sub:null},
+  {word:"認める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"納める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"含める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"強める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"深める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"高める",gyo:"ま",type:"下一段活用",sub:null},
+  {word:"来る",gyo:"か",type:"変格活用",sub:null},
+  {word:"する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"やってくる",gyo:"か",type:"変格活用",sub:null},
+  {word:"持ってくる",gyo:"か",type:"変格活用",sub:null},
+  {word:"連れてくる",gyo:"か",type:"変格活用",sub:null},
+  {word:"出てくる",gyo:"か",type:"変格活用",sub:null},
+  {word:"愛する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"対する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"察する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"面する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"関する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"発する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"要する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"徹する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"属する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"感する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"適する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"約する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"論する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"訳する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"準する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"接する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"和する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"屈する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"熱する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"制する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"害する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"拝する",gyo:"さ",type:"変格活用",sub:null},
+  {word:"記する",gyo:"さ",type:"変格活用",sub:null}
+];
+
 let myName = localStorage.getItem('kobun_name') || '';
 let myAvatar = localStorage.getItem('kobun_avatar') || DEFAULT_AVATAR;
 let bestAvg = parseFloat(localStorage.getItem('kobun_best_avg'));
 if(!Number.isFinite(bestAvg)) bestAvg = null;
 
-let mode = 'solo';
+let mode = 'solo'; // 'solo' = 古文 / 'genbun' = 現代文
 let questions = [], qIndex = 0, currentQ = null;
+let currentBestKey = 'kobun_best_avg';
 let isPlaying = false, isWaitingNext = false, startTime = 0, totalSolveTime = 0, myScore = 0;
 
 // ---------- ユーティリティ ----------
@@ -980,13 +1305,27 @@ function makeAvatarGrid(containerId){
 }
 
 function updateProfileUI(){
-  const displayBest = bestAvg === null ? '--' : bestAvg.toFixed(2) + 's';
+  const kobunBest = parseFloat(localStorage.getItem('kobun_best_avg'));
+  const genbunBest = parseFloat(localStorage.getItem('genbun_best_avg'));
+
+  const displayKobunBest = Number.isFinite(kobunBest)
+    ? kobunBest.toFixed(2) + 's'
+    : '--';
+
+  const displayGenbunBest = Number.isFinite(genbunBest)
+    ? genbunBest.toFixed(2) + 's'
+    : '--';
+
   document.getElementById('title-name').textContent = myName;
   document.getElementById('title-avatar').textContent = myAvatar;
-  document.getElementById('title-best').textContent = displayBest;
+  document.getElementById('title-best-kobun').textContent = displayKobunBest;
+  document.getElementById('title-best-genbun').textContent = displayGenbunBest;
+
   document.getElementById('settings-name').textContent = myName;
   document.getElementById('settings-avatar').textContent = myAvatar;
-  document.getElementById('settings-best').textContent = displayBest;
+  document.getElementById('settings-best-kobun').textContent = displayKobunBest;
+  document.getElementById('settings-best-genbun').textContent = displayGenbunBest;
+
   document.getElementById('edit-name').value = myName;
 }
 
@@ -1044,13 +1383,24 @@ function hideOverlay(){ document.getElementById('overlay').classList.add('hidden
 // ソロ専用版ではSOLO機能を使用しません。
 
 // ---------- ゲーム進行 ----------
+function selectModeTab(tab){
+  // BATTLE は開発中のため、タブ自体を無効化して開けないようにする。
+  if(tab === 'battle') return;
+  document.getElementById('tab-training').classList.add('active');
+  document.getElementById('tab-battle').classList.remove('active');
+}
+
 function startSolo(){
   mode = 'solo';
+  currentBestKey = 'kobun_best_avg';
   questions = shuffle([...pool]).slice(0, MAX_Q);
-  myScore = 0;
-  qIndex = 0;
-  totalSolveTime = 0;
-  showScreen('screen-game');
+  startGame();
+}
+
+function startGenbun(){
+  mode = 'genbun';
+  currentBestKey = 'genbun_best_avg';
+  questions = shuffle([...genbunPool]).slice(0, MAX_Q);
   startGame();
 }
 
@@ -1061,6 +1411,7 @@ function startGame(){
   myScore = 0;
   totalSolveTime = 0;
   document.querySelector('#my-score-box span').textContent = '0';
+  showScreen('screen-game');
   setQuestion();
 }
 
@@ -1078,9 +1429,13 @@ function setQuestion(){
   wordDisplay.textContent = currentQ.word;
   triggerAnimation(document.getElementById('word-card'));
 
-  document.getElementById('status-text').textContent = 'かなを選んでフリック！';
+  document.getElementById('status-text').textContent =
+    mode === 'genbun' ? '活用の種類をフリック！' : 'かなを選んでフリック！';
   document.getElementById('status-text').style.color = "var(--accent)";
-  document.getElementById('flick-hint').textContent = '押したまま上下へ → 一段/二段を選択 → 指を離す';
+  document.getElementById('flick-hint').textContent =
+    mode === 'genbun'
+      ? '左＝五段　右＝変格　上＝上一段　下＝下一段'
+      : '押したまま上下へ → 一段/二段を選択 → 指を離す';
 
   document.querySelectorAll('.flick-key').forEach(k => { k.classList.remove('active'); k.querySelector('.flick-popup').setAttribute('aria-hidden','true'); });
   document.getElementById('flick-area').style.pointerEvents = 'auto';
@@ -1092,7 +1447,7 @@ function updateScoreUI(){
 }
 
 /*
-  回答ルール
+  古文の回答ルール
   ─────────────────────────
   かなキーから
     左  → 四段活用
@@ -1109,6 +1464,10 @@ function updateScoreUI(){
     右 → 下二段活用
 
   「指を離した瞬間」にだけ判定する。
+
+  現代文：
+    左 → 五段活用 / 右 → 変格活用
+    上 → 上一段活用 / 下 → 下一段活用
 */
 function submitFlick(gyo, dx, dy){
   if(!isPlaying || isWaitingNext) return;
@@ -1116,7 +1475,15 @@ function submitFlick(gyo, dx, dy){
   const threshold = 30;
 
   if(ax > ay && ax >= threshold){
-    checkFlickAnswer(dx < 0 ? '四段活用' : '変格活用', null, gyo);
+    checkFlickAnswer(
+      mode === 'genbun'
+        ? (dx < 0 ? '五段活用' : '変格活用')
+        : (dx < 0 ? '四段活用' : '変格活用'),
+      null,
+      gyo
+    );
+  }else if(ay >= threshold && mode === 'genbun'){
+    checkFlickAnswer(dy < 0 ? '上一段活用' : '下一段活用', null, gyo);
   }else if(ay >= threshold){
     wrong();
   }
@@ -1130,6 +1497,18 @@ function checkFlickAnswer(answer, verticalType, gyo){
   // 行が違えば、活用が合っていても絶対に正解にしない。
   if(gyo !== currentQ.gyo){
     wrong();
+    return;
+  }
+
+  if(mode === 'genbun'){
+    const isModernCorrect =
+      answer === currentQ.type ||
+      (answer === '変格活用' && currentQ.type.includes('変格活用'));
+    if(isModernCorrect){
+      solvedLocally();
+    }else{
+      wrong();
+    }
     return;
   }
 
@@ -1159,6 +1538,15 @@ function setPopupLabels(key, stage=null){
   p.classList.remove('stage-up','stage-down','secondary-mode');
 
   p.querySelector('.opt-center').textContent = key.dataset.gyo;
+
+  if(mode === 'genbun'){
+    p.querySelector('.opt-up').textContent = '上一段活用';
+    p.querySelector('.opt-down').textContent = '下一段活用';
+    p.querySelector('.opt-left').textContent = '五段活用';
+    p.querySelector('.opt-right').textContent = '変格活用';
+    return;
+  }
+
   p.querySelector('.opt-up').textContent = '上';
   p.querySelector('.opt-down').textContent = '下';
 
@@ -1179,10 +1567,18 @@ function updateFlickPopupStage(key, stage){
   if(!p) return;
 
   setPopupLabels(key, stage);
-  p.classList.add('secondary-mode', stage === '上' ? 'stage-up' : 'stage-down');
 
-  // 上/下を選択した時点で、中央に戻れるよう中央キーを常に残す。
   p.querySelectorAll('.flick-option').forEach(o => o.classList.remove('chosen'));
+
+  if(mode === 'genbun'){
+    // 現代文は上下フリックだけで上一段/下一段を確定する。
+    p.classList.remove('secondary-mode','stage-up','stage-down');
+    p.querySelector(stage === '上' ? '.opt-up' : '.opt-down')?.classList.add('chosen');
+    return;
+  }
+
+  p.classList.add('secondary-mode', stage === '上' ? 'stage-up' : 'stage-down');
+  // 上/下を選択した時点で、中央に戻れるよう中央キーを常に残す。
   p.querySelector('.opt-center')?.classList.add('chosen');
 }
 
@@ -1251,14 +1647,22 @@ function initFlickInput(){
 
           document.getElementById('flick-hint').textContent =
             f.stage === '上'
-              ? '左上＝上一段活用　右上＝上二段活用'
-              : '左下＝下一段活用　右下＝下二段活用';
+              ? '左上⋯上一段活用　右上⋯上二段活用'
+              : '左下⋯下一段活用　右下⋯下二段活用';
         }else if(ax >= threshold && ax > ay * 0.95){
           f.key.querySelector(dx < 0 ? '.opt-left' : '.opt-right')?.classList.add('chosen');
         }else{
           f.key.querySelector('.opt-center')?.classList.add('chosen');
         }
       }else{
+        if(mode === 'genbun'){
+          // 現代文は上下を選んだ時点で候補を固定。左右の第2段階は使わない。
+          f.secondaryDirection = null;
+          f.key.querySelector(f.stage === '上' ? '.opt-up' : '.opt-down')?.classList.add('chosen');
+          e.preventDefault();
+          return;
+        }
+
         // 第2段階：上なら左上/右上、下なら左下/右下。
         // 縦方向を維持しつつ左右へ動かしたときだけ確定候補を切り替える。
         const verticalOK = f.stage === '上' ? dy < -8 : dy > 8;
@@ -1293,7 +1697,9 @@ function initFlickInput(){
 
       // 指を離した瞬間だけ確定。
       if(stage === '上' || stage === '下'){
-        if(secondaryDirection === 'left'){
+        if(mode === 'genbun'){
+          checkFlickAnswer(stage === '上' ? '上一段活用' : '下一段活用', null, f.gyo);
+        }else if(secondaryDirection === 'left'){
           checkFlickAnswer('一段活用', stage, f.gyo);
         }else if(secondaryDirection === 'right'){
           checkFlickAnswer('二段活用', stage, f.gyo);
@@ -1362,25 +1768,27 @@ function endGame(){
   title.style.color = "var(--primary)";
 
   const avg = totalSolveTime / Math.max(1, myScore);
+  bestAvg = parseFloat(localStorage.getItem(currentBestKey));
+  if(!Number.isFinite(bestAvg)) bestAvg = null;
   let record = false;
 
   if(bestAvg === null || avg < bestAvg){
     bestAvg = avg;
-    localStorage.setItem('kobun_best_avg', bestAvg.toFixed(4));
+    localStorage.setItem(currentBestKey, bestAvg.toFixed(4));
     record = true;
   }
 
   detail.innerHTML =
-    `SCORE: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${myScore}</span> / ${MAX_Q}<br>` +
     `AVG TIME: <span style="color:var(--primary); font-family:var(--font-en); font-size:1.8rem">${avg.toFixed(2)}</span> s`;
 
   bestEl.textContent = `YOUR BEST: ${bestAvg.toFixed(2)}s`;
+  document.getElementById('play-again-btn').onclick = mode === 'genbun' ? startGenbun : startSolo;
   if(record) newRecord.classList.remove('hidden');
   updateProfileUI();
 }
 
 function confirmLeaveGame(){
-  if(confirm('現在のバトルを放棄して離脱しますか？')){
+  if(confirm('現在のトレーニングを放棄して離脱しますか？')){
     isPlaying = false; hideOverlay(); showScreen('screen-title');
   }
 }
